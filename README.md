@@ -1,5 +1,4 @@
 # Teltonika-Notes
-Notes on Using Teltonika Routers
 
 ## General Notes
 (in this author's view) Teltonika routers represent a great mix of features/value/ease-of-use and availability. Many models can be had from Mouser and Digi Key, while having very reasonable price points.  

@@ -38,7 +38,7 @@ Before starting this guide, have a private key, public key and server set up. In
 ### Peer General Setup
 - In `Public Key` add your server's public key
 - In `Allowed IPs` set:
-  - `128.0.0.0/24`
+  - `127.0.0.0/24`
   - `0.0.0.0/24`
 - In `Description` name your peer
 - Set `Route Allowed IPs` to **ON**
@@ -57,11 +57,13 @@ Before starting this guide, have a private key, public key and server set up. In
 ### Firewall Settings
 - Now navigate to `Network > Firewall > General Settings`
 - Your zones should change to read
+- 
 | Zone = Forwardings  | Input  | Output | Forward | Masquerading | MSS Clamping |
 |---------------------|--------|--------|---------|--------------|--------------|
 | lan = wan wireguard | Accept | Accept | Accept  | off          | off          |
 | wan = REJECT        | Reject | Accept | Reject  | on           | on           |
 | wireguard = lan     | Accept | Accept | Accept  | on           | off          |
+
 ![](img/firewall-rules.PNG)
 - Press `Save and Apply`
 

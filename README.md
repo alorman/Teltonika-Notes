@@ -40,9 +40,9 @@ Before starting this guide, have a private key, public key and server set up. In
 ### Peer General Setup
 - In `Public Key` add your **server's public key**
 - In `Allowed IPs` set:
-  - `127.0.0.0/24`
-  - `0.0.0.0/24` **NOTE: this is not `/0` as you might expect**  
-- In `Description` name your peer
+  - `0.0.0.0/0` **NOTE: this order can matter**
+  - `127.0.0.0/0`
+  - In `Description` name your peer
 - Set `Route Allowed IPs` to **ON**
 ![](img/peers.PNG)
 

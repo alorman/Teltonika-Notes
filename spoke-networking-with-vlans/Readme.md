@@ -128,9 +128,12 @@ This architecture can support `n` computers behind each Spoke router. And could 
 
 - Turn the tunnel on and press `Save and Apply`
   - ![](img/wg-setup-5.PNG)
+
+## General Notes
+- When making changes to the WG tunnel, it is best to cycle the service `off` and `on` to make sure the settings reconnect. 
+- To route all traffic through the egress of the AWS public IP
+  - In each Spoke Router add `0.0.0.0/0` to the `Allowed IPs` settings and save.
+- 
   
 
-  
  
-  
-

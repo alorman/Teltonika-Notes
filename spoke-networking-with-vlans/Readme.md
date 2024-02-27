@@ -129,11 +129,22 @@ This architecture can support `n` computers behind each Spoke router. And could 
 - Turn the tunnel on and press `Save and Apply`
   - ![](img/wg-setup-5.PNG)
 
+## Firewall settings on Spokes
+
+### Firewall Settings
+- Now navigate to `Network > Firewall > General Settings`
+- Your zones should change to read
+- 
+| Zone = Forwardings  | Input  | Output | Forward | Masquerading | MSS Clamping |
+|---------------------|--------|--------|---------|--------------|--------------|
+| lan = wan wireguard | Accept | Accept | Accept  | off          | off          |
+| wan = REJECT        | Reject | Accept | Reject  | on           | on           |
+| wireguard = lan     | Accept | Accept | Accept  | on           | off          |
+
 ## General Notes
 - When making changes to the WG tunnel, it is best to cycle the service `off` and `on` to make sure the settings reconnect. 
 - To route all traffic through the egress of the AWS public IP
   - In each Spoke Router add `0.0.0.0/0` to the `Allowed IPs` settings and save.
-- 
   
 
  

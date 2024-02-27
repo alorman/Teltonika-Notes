@@ -7,7 +7,7 @@ Unlike many other embedded routers, they feature to ability to be Wireguard VPN 
 In this guide:
 
 ## Using Teltonika Routers to Route All Internet Traffic through VPN
-[Teltonika Wireguard Routing Guide](teltonika-vpn/Readme.md)
+[Teltonika Wireguard Routing Guide](teltonika-vpn)
 
 ## Using VLANs with Wireguard in Hub and Spoke Topology
-[VLANs and Hub and Spoke](spoke-networking-with-vlans/Readme.md)
+[VLANs and Hub and Spoke](spoke-networking-with-vlans)

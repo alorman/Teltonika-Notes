@@ -12,7 +12,7 @@ I'm a huge fan of Teltonika routers. I found their forum to be a bit sparse for 
 ## Architecture
 ![](img/spoke-diagram.png)
 
-This architecture can support `n` computers behind each Spoke router. And could support multiple VLANs behind both, if desired.
+This architecture can support `n` computers behind `n` Spoke router(s). And could support multiple VLANs behind spokes, if desired.
 
 ### Advantage of this Architecture:
 - Outgoing connections from each spoke. This avoids things like CG-NAT and shifting WAN connections
@@ -29,12 +29,16 @@ This architecture can support `n` computers behind each Spoke router. And could 
 ## Setup
 
 ## Setting Up The Hub Server
+
+### Install WG
 - Instructions are largely lifted from https://dev.to/gabrieltetzner/setting-up-a-vpn-with-wireguard-server-on-aws-ec2-4a49 with light edits
 - Spin an Ubuntu machine of your choice in EC2 and open the Security Group to at least Port 22 and 18520
 - `sudo apt-get update`
 - `sudo apt-get install wireguard`
 - `sudo mkdir /etc/wireguard/`
 - Generate keys as you wish. I found it was easier to use Teltonika's key generation tools
+
+### Configure the WG Server Configuration
 - `sudo nano /etc/wireguard/wg0.conf`
 - Edit the file to look like this:
   - ```
@@ -57,6 +61,7 @@ This architecture can support `n` computers behind each Spoke router. And could 
 	AllowedIPs = 10.1.0.5/32, 192.168.20.0/24, 192.168.100.0/24
 	```
   - **NOTE** Your EC2 machine ethernet interface is likely NOT named `eth0`, make sure to replace it with the correct interface
+  - **NOTE** the `SaveConfig = True` flag causes notes to be overwritten and this is deeply annoying, I don't reccomend you use it
 - You could add other peers of course
 - Breaking this down further we get
   - ```
@@ -72,10 +77,19 @@ This architecture can support `n` computers behind each Spoke router. And could 
 	```
 	- `AllowedIPs` has both VLAN segments listed. **If both are not present, you will not be able to reach the non-listed VLANS**
 	- **NOTE** Inter-VLAN traffic must be allowed by the firewall in the Teltonika for this work correctly. The example below illustrates it set that way. 
+
+### Enable IP Forwarding
+  - `echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.conf`
+  - `sudo sysctl -p`
+- Then up the wg interface with
+  - `sudo wg-quick up wg0`
+  
+### Start the WG Service
 - `sudo systemctl enable wg-quick@wg0` to enable the service start on boot
 - `sudo systemctl start wg-quick@wg0` to start the service (simply enabling it will have it wait for a reboot before starting)
 - Run `sudo systemctl restart wg-quick@wg0.service` after each change to the `wg0.conf` file to allow the changes to take
 - **NOTE** By default; the EC2 Ubuntu machines do **not** have `UFW` enabled. There is no need to enable it if your SGs are set up correctly. 
+- **NOTE** when doing almost anything in the `/etc/wireguard` folder you must invoke root
 
 ## Setting Up Each Spoke
 
@@ -98,6 +112,16 @@ This architecture can support `n` computers behind each Spoke router. And could 
   - Move to the `Physical Settings` tab and set the interface to `eth0.[x]` where `[x]` is the VLAN number you defined in the previous step
   - Move to the `Firewall Settings` tab and make sure your VLAN is grouped in the LAN group in the firewall as below:
   - ![](img/vlan-setup-4.PNG)
+- Switch the interface on and press `Save and Apply`
+  
+### A Note on DHCP Reservations on VLANs
+- New DHCP clients appear in the `Status > Network > LAN` page as below
+  - ![](img/static-ip-capture.PNG)
+- Click `Create Static` (which is, of course, a reservation not a static)
+- Then follow the hyperlink flyout to `Network > DHCP > Static Leases`
+- Edit the desired IP address and the error below will appear
+  - ![](img/static-ip-capture-2.PNG)
+- Press `Save and Apply` the dialogue will show errors for the VLAN DHCP ranges, but will accept the inputs you give it and apply them. You __may__ need to release and renew the client IP for the settings to take effect
  
 ### Set Up WG Peer on Each Spoke
 - Navigate to `Service > VPN > Wireguard` and name your interface and press `Add`
@@ -109,18 +133,20 @@ This architecture can support `n` computers behind each Spoke router. And could 
   - `MTU` to 1500
   - `DNS Server` to the WG IP of the Hub machine
   - ![](img/wg-setup-2.PNG)
+  - **Press `Save and Apply`**
 
 - Add a peer (the Hub Public key)
 - Name your peer and press `Add`
 - Then in `General Setup` in __Spoke 1 Router__
   - ![](img/wg-setup-3.PNG)
   - `Public Key` is the Public Key of the Hub WG interface
-  - `Endpoint Host` is the AWS public IP of the Hub machine
+  - `Endpoint Host` is the AWS public IP of the Hub machine. This will also accept DNS entries
   - `Allowed IPs`
     - 192.168.10.0/24 - this is the IP range of the other spoke network
 	- 10.1.0.0/24 - this is the IP range of the WG interface itself and allows pinging and direct access to the routers themselves (rather than just the clients __behind__ them)
 	- **NOTE** On the other Spoke router configure `Allowed IPs` **to add each of the desired subnets on the other spokes** in this case, __Spoke B Router__ looks like this:
 	- ![](img/wg-setup-6.PNG)
+	- `Route Allowed IPs` to ON
 - Move to `Advanced Setting` Tab
   - Set your `Endpoint Port` to the port on your Hub machine (make sure the SG has this port open too)
   - `Persistent Keepalive` set to 25. This works well
@@ -129,17 +155,25 @@ This architecture can support `n` computers behind each Spoke router. And could 
 - Turn the tunnel on and press `Save and Apply`
   - ![](img/wg-setup-5.PNG)
 
+
 ## Firewall settings on Spokes
 
 ### Firewall Settings
 - Now navigate to `Network > Firewall > General Settings`
 - Your zones should change to read
-- 
+
 | Zone = Forwardings  | Input  | Output | Forward | Masquerading | MSS Clamping |
 |---------------------|--------|--------|---------|--------------|--------------|
 | lan = wan wireguard | Accept | Accept | Accept  | off          | off          |
 | wan = REJECT        | Reject | Accept | Reject  | on           | on           |
 | wireguard = lan     | Accept | Accept | Accept  | on           | off          |
+
+### Verify Wireguard Connectivity on Spokes
+- Login to the CLI by navigating to `System > Maintenance > CLI`
+  - The login username is **always** `root`
+  - The login password is your admin password
+- Type `wg` and look for data the data counters to be rising on each poll
+- If no bytes are moving, likely something isn't right
 
 ## General Notes
 - When making changes to the WG tunnel, it is best to cycle the service `off` and `on` to make sure the settings reconnect. 

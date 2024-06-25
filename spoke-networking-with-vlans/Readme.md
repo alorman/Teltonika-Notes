@@ -7,12 +7,14 @@ I'm a huge fan of Teltonika routers. I found their forum to be a bit sparse for 
 
 ## Hardware
 - This guide is written using a Teltonika RUTX-R1 and a RUT-X09
-- The AWS portion of this is using a T3.micro running Ubuntu 22.04
+  - **NOTE** When purchasing these, check for the region locking of the radios.
+- The AWS portion of this is using a `T3.micro` running Ubuntu 22.04
 
 ## Architecture
 ![](img/spoke-diagram.png)
 
-This architecture can support `n` computers behind `n` Spoke router(s). And could support multiple VLANs behind spokes, if desired.
+This architecture can support `n` computers behind `n` Spoke router(s). And could support multiple VLANs behind spokes, if desired.   
+It can also support `n` computers in the AWS VPC subnet, to allow any computer on each spoke talk to any computer behind the AWS WG Hub.
 
 ### Advantage of this Architecture:
 - Outgoing connections from each spoke. This avoids things like CG-NAT and shifting WAN connections
@@ -25,6 +27,9 @@ This architecture can support `n` computers behind `n` Spoke router(s). And coul
 ### Disadvantage of this Architecture:
 - Requirement for a Hub machine to be on all the time (best if this is in some sort of cloud hosting, but not strictly required)
 - Not a particularity portable setup to bring all elements off public internet
+
+### References
+To generate keys and a few other useful items, I've been using the excellent https://www.wireguardconfig.com/  
 
 ## Setup
 
@@ -53,12 +58,12 @@ This architecture can support `n` computers behind `n` Spoke router(s). And coul
 	[Peer]
 	#Spoke 2 Router
 	PublicKey = [public key]
-	AllowedIPs = 10.1.0.3/32, 192.168.10.0/24
+	AllowedIPs = 10.1.0.3/32
 
 	[Peer]
 	#Spoke 1 Router
 	PublicKey = [public key]
-	AllowedIPs = 10.1.0.5/32, 192.168.20.0/24, 192.168.100.0/24
+	AllowedIPs = 10.1.0.5/32
 	```
   - **NOTE** Your EC2 machine ethernet interface is likely NOT named `eth0`, make sure to replace it with the correct interface
   - **NOTE** the `SaveConfig = True` flag causes notes to be overwritten and this is deeply annoying, I don't reccomend you use it
@@ -78,8 +83,15 @@ This architecture can support `n` computers behind `n` Spoke router(s). And coul
 	- `AllowedIPs` has both VLAN segments listed. **If both are not present, you will not be able to reach the non-listed VLANS**
 	- **NOTE** Inter-VLAN traffic must be allowed by the firewall in the Teltonika for this work correctly. The example below illustrates it set that way. 
 
+### A Note on AllowedIPs
+- The `AllowedIPs` field determines how the routes are formed, from the spoke side. 
+- Previously, I had put `AllowedIP` values into the hub configuration. This seems to no longer be required. 
+- **In Short**
+  - Put the ranges you want to reach in the client `AllowedIP` field. Remember to include the WG hub range, if you desire to reach that for config purposes. 
+
 ### Enable IP Forwarding
   - `echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.conf`
+    - This also gets done by the `PreUp` script above. This is probably a belt and suspenders.
   - `sudo sysctl -p`
 - Then up the wg interface with
   - `sudo wg-quick up wg0`
@@ -144,6 +156,7 @@ This architecture can support `n` computers behind `n` Spoke router(s). And coul
   - `Allowed IPs`
     - 192.168.10.0/24 - this is the IP range of the other spoke network
 	- 10.1.0.0/24 - this is the IP range of the WG interface itself and allows pinging and direct access to the routers themselves (rather than just the clients __behind__ them)
+	- If you'd like all traffic to egress via the Hub interface, (i.e. you want a tradition VPN setup to mask internet activity) you should add `0.0.0.0/0` while technically redundant to the above, it will make toggling this feature a good bit easier. Overall, WAN access will be slower if it's routed through the VPN hub
 	- **NOTE** On the other Spoke router configure `Allowed IPs` **to add each of the desired subnets on the other spokes** in this case, __Spoke B Router__ looks like this:
 	- ![](img/wg-setup-6.PNG)
 	- `Route Allowed IPs` to ON
@@ -180,5 +193,3 @@ This architecture can support `n` computers behind `n` Spoke router(s). And coul
 - To route all traffic through the egress of the AWS public IP
   - In each Spoke Router add `0.0.0.0/0` to the `Allowed IPs` settings and save.
   
-
- 

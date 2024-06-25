@@ -11,7 +11,6 @@ I'm a huge fan of Teltonika routers. I found their forum to be a bit sparse for 
 - The AWS portion of this is using a `T3.micro` running Ubuntu 22.04
 
 ## Architecture
-<img src="img/spoke-diagram.png" width="1200">
 <img src="img/spoke-diagram.svg" width="1400">
 
 This architecture can support `n` computers behind `n` Spoke router(s). And could support multiple VLANs behind spokes, if desired.   

@@ -12,6 +12,7 @@ I'm a huge fan of Teltonika routers. I found their forum to be a bit sparse for 
 
 ## Architecture
 <img src="img/spoke-diagram.png" width="1200">
+<img src="img/spoke-diagram.svg" width="1400">
 
 This architecture can support `n` computers behind `n` Spoke router(s). And could support multiple VLANs behind spokes, if desired.   
 It can also support `n` computers in the AWS VPC subnet, to allow any computer on each spoke talk to any computer behind the AWS WG Hub.
